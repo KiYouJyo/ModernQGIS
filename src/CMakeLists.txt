@@ -54,7 +54,7 @@ if(MODERNQGIS_WITH_QGIS)
         bridge/QgisBridge.h
     )
     target_link_libraries(modernqgis_qgis_bridge
-        PUBLIC modernqgis_foundation QGIS::Core QGIS::Gui
+        PUBLIC modernqgis_foundation QGIS::Core QGIS::Gui Qt6::Xml
     )
 
     add_library(modernqgis_plugin MODULE
@@ -63,7 +63,7 @@ if(MODERNQGIS_WITH_QGIS)
         plugin/plugin_exports.cpp
     )
     target_link_libraries(modernqgis_plugin
-        PRIVATE modernqgis_qgis_bridge QGIS::Core QGIS::Gui
+        PRIVATE modernqgis_qgis_bridge QGIS::Core QGIS::Gui Qt6::Xml
     )
     set_target_properties(modernqgis_plugin PROPERTIES
         PREFIX ""
