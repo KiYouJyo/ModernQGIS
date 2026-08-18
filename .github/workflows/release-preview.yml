@@ -1,9 +1,21 @@
-name: Build preview package
+name: Build signed preview package
 
 on:
   workflow_dispatch:
   push:
+    branches: ["main"]
     tags: ["v*"]
+    paths:
+      - ".github/workflows/release-preview.yml"
+      - "installer/**"
+      - "release/**"
+      - "src/**"
+      - "tests/**"
+      - "translations/**"
+      - "cmake/**"
+      - "CMakeLists.txt"
+      - "README*"
+      - "LICENSE"
 
 permissions:
   contents: write
@@ -15,10 +27,12 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with: {python-version: "3.12"}
+
       - name: Validate contracts
         run: |
           python scripts/check_i18n.py
           python scripts/check_release_contract.py
+
       - name: Read target version
         id: version
         shell: pwsh
@@ -26,22 +40,30 @@ jobs:
           $m = Get-Content release/release.json -Raw | ConvertFrom-Json
           "version=$($m.version)" >> $env:GITHUB_OUTPUT
           "publish=$($m.channels.github.publish.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+
       - name: Validate tag
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         run: |
           if ("${{ github.ref_name }}" -ne "v${{ steps.version.outputs.version }}") { throw "Tag/version mismatch" }
           if ("${{ steps.version.outputs.publish }}" -ne "true") { throw "Tagged publication requires publish=true" }
+
       - uses: jurplel/install-qt-action@v4
         with:
           version: "6.8.3"
           cache: true
-      - run: cmake -S . -B build -DMODERNQGIS_WITH_QGIS=OFF -DMODERNQGIS_BUILD_TESTS=ON -DMODERNQGIS_BUILD_SANDBOX=ON
-      - shell: pwsh
+
+      - name: Configure
+        run: cmake -S . -B build -DMODERNQGIS_WITH_QGIS=OFF -DMODERNQGIS_BUILD_TESTS=ON -DMODERNQGIS_BUILD_SANDBOX=ON
+
+      - name: Build and test
+        shell: pwsh
         run: |
           cmake --build build --config Release --parallel
           ctest --test-dir build -C Release --output-on-failure
+
       - name: Stage runtime
+        id: stage
         shell: pwsh
         run: |
           $v = "${{ steps.version.outputs.version }}"
@@ -53,17 +75,158 @@ jobs:
           Copy-Item "LICENSE" $stage
           Copy-Item "README.md", "README.ja.md", "README.en.md" $docs
           Copy-Item "release/notes/v$v.zh-CN.md", "release/notes/v$v.ja-JP.md", "release/notes/v$v.en-US.md" $docs
-          Compress-Archive -Path "$stage/*" -DestinationPath "dist/ModernQGIS-ShellPreview-v$v-windows-x64.zip"
-          $file = "dist/ModernQGIS-ShellPreview-v$v-windows-x64.zip"
-          $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  ModernQGIS-ShellPreview-v$v-windows-x64.zip" | Set-Content -NoNewline dist/SHA256SUMS
+          "stage=$stage" >> $env:GITHUB_OUTPUT
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Prepare code-signing identity
+        id: signing
+        shell: pwsh
+        env:
+          PFX_B64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 || secrets.WINDOWS_CERTIFICATE_BASE64 || secrets.CERTIFICATE_BASE64 || secrets.PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD || secrets.WINDOWS_CERTIFICATE_PASSWORD || secrets.CERTIFICATE_PASSWORD || secrets.PFX_PASSWORD }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $cerPath = Join-Path (Resolve-Path dist) "ModernQGIS-SigningCertificate.cer"
+          $source = "repository-secret"
+
+          if (-not [string]::IsNullOrWhiteSpace($env:PFX_B64)) {
+            $pfxPath = Join-Path $env:RUNNER_TEMP "modernqgis-signing.pfx"
+            [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_B64))
+            $secure = ConvertTo-SecureString ($env:PFX_PASSWORD ?? "") -AsPlainText -Force
+            $imported = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation "Cert:\CurrentUser\My" -Password $secure
+            $cert = $imported | Where-Object { $_.HasPrivateKey } | Select-Object -First 1
+            if (-not $cert) { throw "The configured PFX did not import a certificate with a private key." }
+          }
+          else {
+            $source = "self-signed-fallback"
+            $cert = New-SelfSignedCertificate `
+              -Type CodeSigningCert `
+              -Subject "CN=AppPublisher" `
+              -KeyAlgorithm RSA `
+              -KeyLength 3072 `
+              -HashAlgorithm SHA256 `
+              -CertStoreLocation "Cert:\CurrentUser\My" `
+              -NotAfter (Get-Date).AddYears(5)
+          }
+
+          Export-Certificate -Cert $cert -FilePath $cerPath -Force | Out-Null
+          Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\TrustedPublisher" | Out-Null
+          Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
+
+          "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+          "source=$source" >> $env:GITHUB_OUTPUT
+          "subject=$($cert.Subject)" >> $env:GITHUB_OUTPUT
+
+      - name: Sign application binary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $signtool) { throw "signtool.exe was not found on the Windows runner." }
+
+          $exe = Join-Path "${{ steps.stage.outputs.stage }}" "modernqgis-sandbox.exe"
+          & $signtool sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" /tr http://timestamp.digicert.com /td SHA256 $exe
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Timestamp service failed; retrying without timestamp."
+            & $signtool sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" $exe
+          }
+          if ($LASTEXITCODE -ne 0) { throw "Application signing failed." }
+
+      - name: Build portable archive and installer
+        id: package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $v = "${{ steps.version.outputs.version }}"
+          $stage = (Resolve-Path "${{ steps.stage.outputs.stage }}").Path
+          $dist = (Resolve-Path dist).Path
+          $zip = Join-Path $dist "ModernQGIS-ShellPreview-v$v-windows-x64.zip"
+          Compress-Archive -Path "$stage\*" -DestinationPath $zip -Force
+
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler was not found." }
+          & $iscc "/DMyAppVersion=$v" "/DStageDir=$stage" "/DOutputDir=$dist" "installer/ModernQGIS.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
+
+          $installer = Join-Path $dist "ModernQGIS-ShellPreview-v$v-windows-x64-setup.exe"
+          if (-not (Test-Path $installer)) { throw "Expected installer was not generated: $installer" }
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+          "installer=$installer" >> $env:GITHUB_OUTPUT
+
+      - name: Sign installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $signtool) { throw "signtool.exe was not found on the Windows runner." }
+
+          $installer = "${{ steps.package.outputs.installer }}"
+          & $signtool sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" /tr http://timestamp.digicert.com /td SHA256 $installer
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Timestamp service failed; retrying without timestamp."
+            & $signtool sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" $installer
+          }
+          if ($LASTEXITCODE -ne 0) { throw "Installer signing failed." }
+
+      - name: Verify signatures and checksums
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+          $app = Join-Path "${{ steps.stage.outputs.stage }}" "modernqgis-sandbox.exe"
+          $installer = "${{ steps.package.outputs.installer }}"
+          & $signtool verify /pa /v $app
+          if ($LASTEXITCODE -ne 0) { throw "Application Authenticode verification failed." }
+          & $signtool verify /pa /v $installer
+          if ($LASTEXITCODE -ne 0) { throw "Installer Authenticode verification failed." }
+
+          $appSig = Get-AuthenticodeSignature $app
+          $installerSig = Get-AuthenticodeSignature $installer
+          if ($appSig.Status -ne "Valid") { throw "Application signature status is $($appSig.Status)." }
+          if ($installerSig.Status -ne "Valid") { throw "Installer signature status is $($installerSig.Status)." }
+
+          @(
+            "version=${{ steps.version.outputs.version }}"
+            "source=${{ steps.signing.outputs.source }}"
+            "subject=${{ steps.signing.outputs.subject }}"
+            "thumbprint=${{ steps.signing.outputs.thumbprint }}"
+            "application_status=$($appSig.Status)"
+            "installer_status=$($installerSig.Status)"
+          ) | Set-Content -Encoding UTF8 dist/SIGNING-INFO.txt
+
+          $files = @(
+            "${{ steps.package.outputs.installer }}",
+            "${{ steps.package.outputs.zip }}",
+            (Resolve-Path "dist/ModernQGIS-SigningCertificate.cer").Path,
+            (Resolve-Path "dist/SIGNING-INFO.txt").Path
+          )
+          $sumLines = foreach ($file in $files) {
+            $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $([IO.Path]::GetFileName($file))"
+          }
+          $sumLines | Set-Content -Encoding ASCII dist/SHA256SUMS
+
       - uses: actions/upload-artifact@v4
         with:
-          name: ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64
+          name: ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64-signed
           path: |
+            dist/ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64-setup.exe
             dist/ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64.zip
+            dist/ModernQGIS-SigningCertificate.cer
+            dist/SIGNING-INFO.txt
             dist/SHA256SUMS
           if-no-files-found: error
+
       - name: Publish tagged GitHub Release only
         if: startsWith(github.ref, 'refs/tags/') && steps.version.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
@@ -71,5 +234,8 @@ jobs:
           prerelease: true
           body_path: release/notes/v${{ steps.version.outputs.version }}.en-US.md
           files: |
+            dist/ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64-setup.exe
             dist/ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64.zip
+            dist/ModernQGIS-SigningCertificate.cer
+            dist/SIGNING-INFO.txt
             dist/SHA256SUMS
