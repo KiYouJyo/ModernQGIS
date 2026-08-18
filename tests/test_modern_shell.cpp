@@ -2,6 +2,7 @@
 #include "shell/ModernShellWindow.h"
 #include "shell/ShellStyle.h"
 #include <QtTest>
+#include <QWidget>
 
 using namespace modernqgis;
 
@@ -17,6 +18,24 @@ private slots:
         QVERIFY(window.paneRegistry().contains(QStringLiteral("contents")));
         QVERIFY(window.paneRegistry().contains(QStringLiteral("properties")));
         QVERIFY(window.contextRegistry().isActive(QStringLiteral("workspace.map")));
+    }
+
+    void exposesPresentationNeutralIntegrationPoints() {
+        ModernShellWindow window;
+        QVERIFY(window.commandAction(QStringLiteral("map.pan")) != nullptr);
+
+        auto* map = new QWidget;
+        map->setObjectName(QStringLiteral("InjectedMapCanvas"));
+        window.replaceMapCanvas(map);
+        QVERIFY(window.findChild<QWidget*>(QStringLiteral("InjectedMapCanvas")) == map);
+
+        auto* tree = new QWidget;
+        tree->setObjectName(QStringLiteral("InjectedContentsTree"));
+        window.replaceContentsTree(tree);
+        QVERIFY(window.findChild<QWidget*>(QStringLiteral("InjectedContentsTree")) == tree);
+
+        window.setProjectDisplayName(QStringLiteral("functional.qgz"));
+        QCOMPARE(window.windowTitle(), QStringLiteral("ModernQGIS · functional.qgz"));
     }
 };
 
