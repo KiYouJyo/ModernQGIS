@@ -4,6 +4,8 @@ set(MODERNQGIS_FOUNDATION_SOURCES
     core/PaneRegistry.cpp
     bridge/NullQgisBridge.cpp
     i18n/LocalizationManager.cpp
+    shell/ShellStyle.cpp
+    shell/ModernShellWindow.cpp
 )
 
 set(MODERNQGIS_FOUNDATION_HEADERS
@@ -15,6 +17,8 @@ set(MODERNQGIS_FOUNDATION_HEADERS
     bridge/IQgisBridge.h
     bridge/NullQgisBridge.h
     i18n/LocalizationManager.h
+    shell/ShellStyle.h
+    shell/ModernShellWindow.h
 )
 
 add_library(modernqgis_foundation STATIC
