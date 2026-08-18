@@ -31,6 +31,7 @@ QList<Binding> publicBindings(QgisInterface* iface) {
         {"map.zoom-in", "map", iface->actionZoomIn()},
         {"map.zoom-out", "map", iface->actionZoomOut()},
         {"map.full-extent", "map", iface->actionZoomFullExtent()},
+        {"map.select", "map", iface->actionSelect()},
         {"map.identify", "map", iface->actionIdentify()},
         {"map.measure", "map", iface->actionMeasure()},
         {"map.measure-area", "map", iface->actionMeasureArea()},
@@ -94,14 +95,14 @@ int QgisBridge::bindRegisteredCommands(CommandRegistry& registry) const {
         QAction* nativeAction = binding.action;
         QObject::connect(shellAction, &QAction::triggered, nativeAction, [nativeAction] {
             nativeAction->trigger();
-        }, Qt::UniqueConnection);
+        });
         shellAction->setEnabled(nativeAction->isEnabled());
         shellAction->setCheckable(nativeAction->isCheckable());
         shellAction->setChecked(nativeAction->isChecked());
         QObject::connect(nativeAction, &QAction::changed, shellAction, [shellAction, nativeAction] {
             shellAction->setEnabled(nativeAction->isEnabled());
             if (shellAction->isCheckable()) shellAction->setChecked(nativeAction->isChecked());
-        }, Qt::UniqueConnection);
+        });
         ++bound;
     }
     return bound;
