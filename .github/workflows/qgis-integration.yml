@@ -24,7 +24,7 @@ jobs:
     container:
       image: qgis/qgis:4.2.0-trixie
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install development headers
         shell: bash
         run: |
