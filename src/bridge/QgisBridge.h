@@ -18,6 +18,10 @@ public:
     QList<QDockWidget*> discoverDockWidgets() const override;
     int seedCoreCommands(CommandRegistry& registry) const override;
 
+    // Connects already-present ModernQGIS presentation actions to stable public
+    // QgisInterface actions. This preserves the presentation/feature boundary.
+    int bindRegisteredCommands(CommandRegistry& registry) const;
+
 private:
     QgisInterface* m_iface = nullptr;
 };
