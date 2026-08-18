@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
     QApplication::setApplicationVersion(QStringLiteral(MODERNQGIS_VERSION));
     QApplication::setOrganizationName(QStringLiteral("ModernQGIS"));
     QCommandLineParser parser;
-    parser.setApplicationDescription(QStringLiteral("ModernQGIS foundation sandbox"));
+    parser.setApplicationDescription(QStringLiteral("ModernQGIS v0.3 shell preview"));
     parser.addHelpOption();
     parser.addVersionOption();
     QCommandLineOption languageOption({QStringLiteral("l"), QStringLiteral("lang")},
