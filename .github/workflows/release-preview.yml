@@ -27,6 +27,7 @@ permissions:
 jobs:
   package-windows-x64:
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -100,7 +101,8 @@ jobs:
           if (-not [string]::IsNullOrWhiteSpace($env:PFX_B64)) {
             $pfxPath = Join-Path $env:RUNNER_TEMP "modernqgis-signing.pfx"
             [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_B64))
-            $secure = ConvertTo-SecureString ($env:PFX_PASSWORD ?? "") -AsPlainText -Force
+            $plainPassword = if ($null -eq $env:PFX_PASSWORD) { "" } else { $env:PFX_PASSWORD }
+            $secure = ConvertTo-SecureString $plainPassword -AsPlainText -Force
             $imported = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation "Cert:\CurrentUser\My" -Password $secure
             $cert = $imported | Where-Object { $_.HasPrivateKey } | Select-Object -First 1
             if (-not $cert) { throw "The configured PFX did not import a certificate with a private key." }
@@ -118,8 +120,8 @@ jobs:
           }
 
           Export-Certificate -Cert $cert -FilePath $cerPath -Force | Out-Null
+          Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\TrustedPeople" | Out-Null
           Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\TrustedPublisher" | Out-Null
-          Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
 
           "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
           "source=$source" >> $env:GITHUB_OUTPUT
@@ -187,6 +189,8 @@ jobs:
           $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
             Sort-Object FullName -Descending |
             Select-Object -First 1 -ExpandProperty FullName
+          if (-not $signtool) { throw "signtool.exe was not found on the Windows runner." }
+
           $app = Join-Path "${{ steps.stage.outputs.stage }}" "modernqgis-sandbox.exe"
           $installer = "${{ steps.package.outputs.installer }}"
           & $signtool verify /pa /v $app
