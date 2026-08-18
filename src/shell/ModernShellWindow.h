@@ -26,6 +26,14 @@ public:
     PaneRegistry& paneRegistry() { return m_panes; }
     ContextRegistry& contextRegistry() { return m_contexts; }
 
+    // Generic integration points used by runtime bridges. These deliberately
+    // accept Qt widgets/actions only so the shell remains independent from
+    // QGIS API types and version churn.
+    QAction* commandAction(const QString& id) const;
+    void replaceMapCanvas(QWidget* widget);
+    void replaceContentsTree(QWidget* widget);
+    void setProjectDisplayName(const QString& name);
+
 protected:
     void closeEvent(QCloseEvent* event) override;
 
