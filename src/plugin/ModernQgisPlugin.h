@@ -8,6 +8,8 @@ class QAction;
 class QgisInterface;
 
 namespace modernqgis {
+class ModernShellWindow;
+
 class ModernQgisPlugin final : public QObject, public QgisPlugin {
     Q_OBJECT
 public:
@@ -16,7 +18,10 @@ public:
     void initGui() override;
     void unload() override;
 private:
+    void showShell();
+
     QgisInterface* m_iface = nullptr;
     QAction* m_action = nullptr;
+    ModernShellWindow* m_shell = nullptr;
 };
 } // namespace modernqgis
