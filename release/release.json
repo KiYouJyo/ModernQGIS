@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "product": "ModernQGIS",
+  "version": "0.2.0",
+  "stability": "development",
+  "foundationScope": ["v0.1", "v0.2"],
+  "qgisBundled": false,
+  "locales": ["zh-CN", "ja-JP", "en-US"],
+  "channels": {
+    "github": {
+      "publish": false,
+      "packageKind": "ShellPreview",
+      "platform": "windows",
+      "arch": "x64"
+    }
+  }
+}

@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -15,8 +17,8 @@ jobs:
   repository-contract:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: {python-version: "3.12"}
       - run: python scripts/check_i18n.py
       - run: python scripts/check_release_contract.py
@@ -33,7 +35,7 @@ jobs:
       fail-fast: false
       matrix: {os: [ubuntu-latest, windows-latest]}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: jurplel/install-qt-action@v4
         with:
           version: "6.8.3"
