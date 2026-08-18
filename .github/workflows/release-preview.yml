@@ -2,6 +2,10 @@ name: Build signed preview package
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/release-preview.yml"
+      - "installer/**"
   push:
     branches: ["main"]
     tags: ["v*"]
@@ -23,6 +27,7 @@ permissions:
 jobs:
   package-windows-x64:
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -92,49 +97,41 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $cerPath = Join-Path (Resolve-Path dist) "ModernQGIS-SigningCertificate.cer"
           $source = "repository-secret"
-
           if (-not [string]::IsNullOrWhiteSpace($env:PFX_B64)) {
             $pfxPath = Join-Path $env:RUNNER_TEMP "modernqgis-signing.pfx"
             [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_B64))
-            $secure = ConvertTo-SecureString ($env:PFX_PASSWORD ?? "") -AsPlainText -Force
+            $plainPassword = if ($null -eq $env:PFX_PASSWORD) { "" } else { $env:PFX_PASSWORD }
+            $secure = ConvertTo-SecureString $plainPassword -AsPlainText -Force
             $imported = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation "Cert:\CurrentUser\My" -Password $secure
             $cert = $imported | Where-Object { $_.HasPrivateKey } | Select-Object -First 1
             if (-not $cert) { throw "The configured PFX did not import a certificate with a private key." }
-          }
-          else {
+          } else {
             $source = "self-signed-fallback"
-            $cert = New-SelfSignedCertificate `
-              -Type CodeSigningCert `
-              -Subject "CN=AppPublisher" `
-              -KeyAlgorithm RSA `
-              -KeyLength 3072 `
-              -HashAlgorithm SHA256 `
-              -CertStoreLocation "Cert:\CurrentUser\My" `
-              -NotAfter (Get-Date).AddYears(5)
+            $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=AppPublisher" -KeyAlgorithm RSA -KeyLength 3072 -HashAlgorithm SHA256 -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(5)
           }
-
           Export-Certificate -Cert $cert -FilePath $cerPath -Force | Out-Null
+          Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\TrustedPeople" | Out-Null
           Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\TrustedPublisher" | Out-Null
-          Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
-
           "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
           "source=$source" >> $env:GITHUB_OUTPUT
           "subject=$($cert.Subject)" >> $env:GITHUB_OUTPUT
 
+      - name: Locate SignTool
+        id: signtool
+        shell: pwsh
+        run: |
+          $tool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $tool) { throw "signtool.exe was not found on the Windows runner." }
+          "path=$tool" >> $env:GITHUB_OUTPUT
+
       - name: Sign application binary
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
-            Sort-Object FullName -Descending |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $signtool) { throw "signtool.exe was not found on the Windows runner." }
-
           $exe = Join-Path "${{ steps.stage.outputs.stage }}" "modernqgis-sandbox.exe"
-          & $signtool sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" /tr http://timestamp.digicert.com /td SHA256 $exe
+          & "${{ steps.signtool.outputs.path }}" sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" /tr http://timestamp.digicert.com /td SHA256 $exe
           if ($LASTEXITCODE -ne 0) {
             Write-Warning "Timestamp service failed; retrying without timestamp."
-            & $signtool sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" $exe
+            & "${{ steps.signtool.outputs.path }}" sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" $exe
           }
           if ($LASTEXITCODE -ne 0) { throw "Application signing failed." }
 
@@ -142,18 +139,15 @@ jobs:
         id: package
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
           $v = "${{ steps.version.outputs.version }}"
           $stage = (Resolve-Path "${{ steps.stage.outputs.stage }}").Path
           $dist = (Resolve-Path dist).Path
           $zip = Join-Path $dist "ModernQGIS-ShellPreview-v$v-windows-x64.zip"
           Compress-Archive -Path "$stage\*" -DestinationPath $zip -Force
-
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { throw "Inno Setup compiler was not found." }
           & $iscc "/DMyAppVersion=$v" "/DStageDir=$stage" "/DOutputDir=$dist" "installer/ModernQGIS.iss"
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
-
           $installer = Join-Path $dist "ModernQGIS-ShellPreview-v$v-windows-x64-setup.exe"
           if (-not (Test-Path $installer)) { throw "Expected installer was not generated: $installer" }
           "zip=$zip" >> $env:GITHUB_OUTPUT
@@ -162,17 +156,11 @@ jobs:
       - name: Sign installer
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
-            Sort-Object FullName -Descending |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $signtool) { throw "signtool.exe was not found on the Windows runner." }
-
           $installer = "${{ steps.package.outputs.installer }}"
-          & $signtool sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" /tr http://timestamp.digicert.com /td SHA256 $installer
+          & "${{ steps.signtool.outputs.path }}" sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" /tr http://timestamp.digicert.com /td SHA256 $installer
           if ($LASTEXITCODE -ne 0) {
             Write-Warning "Timestamp service failed; retrying without timestamp."
-            & $signtool sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" $installer
+            & "${{ steps.signtool.outputs.path }}" sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" $installer
           }
           if ($LASTEXITCODE -ne 0) { throw "Installer signing failed." }
 
@@ -180,26 +168,37 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
-            Sort-Object FullName -Descending |
-            Select-Object -First 1 -ExpandProperty FullName
           $app = Join-Path "${{ steps.stage.outputs.stage }}" "modernqgis-sandbox.exe"
           $installer = "${{ steps.package.outputs.installer }}"
-          & $signtool verify /pa /v $app
-          if ($LASTEXITCODE -ne 0) { throw "Application Authenticode verification failed." }
-          & $signtool verify /pa /v $installer
-          if ($LASTEXITCODE -ne 0) { throw "Installer Authenticode verification failed." }
-
+          $expected = "${{ steps.signing.outputs.thumbprint }}"
+          $source = "${{ steps.signing.outputs.source }}"
           $appSig = Get-AuthenticodeSignature $app
           $installerSig = Get-AuthenticodeSignature $installer
-          if ($appSig.Status -ne "Valid") { throw "Application signature status is $($appSig.Status)." }
-          if ($installerSig.Status -ne "Valid") { throw "Installer signature status is $($installerSig.Status)." }
 
+          function Assert-Signature([string]$name, $sig) {
+            if (-not $sig.SignerCertificate) { throw "$name has no Authenticode signer certificate." }
+            if ($sig.SignerCertificate.Thumbprint -ne $expected) { throw "$name signer thumbprint mismatch." }
+            $bad = @("NotSigned", "HashMismatch", "NotSupportedFormat", "Incompatible")
+            if ($bad -contains $sig.Status.ToString()) { throw "$name Authenticode validation failed: $($sig.Status)." }
+            if ($source -eq "repository-secret" -and $sig.Status -ne "Valid") { throw "$name repository certificate is not trusted/valid: $($sig.Status)." }
+          }
+
+          Assert-Signature "Application" $appSig
+          Assert-Signature "Installer" $installerSig
+          if ($source -eq "repository-secret") {
+            & "${{ steps.signtool.outputs.path }}" verify /pa /v $app
+            if ($LASTEXITCODE -ne 0) { throw "Application public-trust verification failed." }
+            & "${{ steps.signtool.outputs.path }}" verify /pa /v $installer
+            if ($LASTEXITCODE -ne 0) { throw "Installer public-trust verification failed." }
+          }
+
+          $trustMode = if ($source -eq "repository-secret") { "trusted-chain-required" } else { "self-signed-certificate-included" }
           @(
             "version=${{ steps.version.outputs.version }}"
-            "source=${{ steps.signing.outputs.source }}"
+            "source=$source"
+            "trust_mode=$trustMode"
             "subject=${{ steps.signing.outputs.subject }}"
-            "thumbprint=${{ steps.signing.outputs.thumbprint }}"
+            "thumbprint=$expected"
             "application_status=$($appSig.Status)"
             "installer_status=$($installerSig.Status)"
           ) | Set-Content -Encoding UTF8 dist/SIGNING-INFO.txt
