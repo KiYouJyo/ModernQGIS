@@ -35,7 +35,6 @@ jobs:
       - uses: jurplel/install-qt-action@v4
         with:
           version: "6.8.3"
-          modules: "qttools"
           cache: true
       - run: cmake -S . -B build -DMODERNQGIS_WITH_QGIS=OFF -DMODERNQGIS_BUILD_SANDBOX=ON -DMODERNQGIS_BUILD_TESTS=ON
       - run: cmake --build build --config Release --parallel
