@@ -12,6 +12,39 @@
 #include <QMainWindow>
 
 namespace modernqgis {
+namespace {
+
+struct Binding {
+    const char* id;
+    const char* category;
+    QAction* action;
+};
+
+QList<Binding> publicBindings(QgisInterface* iface) {
+    if (!iface) return {};
+    return {
+        {"project.new", "project", iface->actionNewProject()},
+        {"project.open", "project", iface->actionOpenProject()},
+        {"project.save", "project", iface->actionSaveProject()},
+        {"map.explore", "map", iface->actionPan()},
+        {"map.pan", "map", iface->actionPan()},
+        {"map.zoom-in", "map", iface->actionZoomIn()},
+        {"map.zoom-out", "map", iface->actionZoomOut()},
+        {"map.full-extent", "map", iface->actionZoomFullExtent()},
+        {"map.select", "map", iface->actionSelect()},
+        {"map.identify", "map", iface->actionIdentify()},
+        {"map.measure", "map", iface->actionMeasure()},
+        {"map.measure-area", "map", iface->actionMeasureArea()},
+        {"map.zoom-selection", "map", iface->actionZoomToSelected()},
+        {"layer.add-vector", "layer", iface->actionAddOgrLayer()},
+        {"layer.add-raster", "layer", iface->actionAddRasterLayer()},
+        {"layer.attribute-table", "layer", iface->actionOpenTable()},
+        {"layer.properties", "layer", iface->actionLayerProperties()},
+        {"layer.toggle-editing", "edit", iface->actionToggleEditing()},
+    };
+}
+
+} // namespace
 
 QgisBridge::QgisBridge(QgisInterface* iface) : m_iface(iface) {}
 
@@ -36,26 +69,8 @@ QList<QDockWidget*> QgisBridge::discoverDockWidgets() const {
 }
 
 int QgisBridge::seedCoreCommands(CommandRegistry& registry) const {
-    if (!m_iface) return 0;
-
-    struct Binding { const char* id; const char* category; QAction* action; };
-    const Binding bindings[] = {
-        {"project.new", "project", m_iface->actionNewProject()},
-        {"project.open", "project", m_iface->actionOpenProject()},
-        {"project.save", "project", m_iface->actionSaveProject()},
-        {"map.pan", "map", m_iface->actionPan()},
-        {"map.zoom-in", "map", m_iface->actionZoomIn()},
-        {"map.zoom-out", "map", m_iface->actionZoomOut()},
-        {"map.full-extent", "map", m_iface->actionZoomFullExtent()},
-        {"map.identify", "map", m_iface->actionIdentify()},
-        {"map.measure", "map", m_iface->actionMeasure()},
-        {"layer.add-vector", "layer", m_iface->actionAddOgrLayer()},
-        {"layer.add-raster", "layer", m_iface->actionAddRasterLayer()},
-        {"layer.toggle-editing", "edit", m_iface->actionToggleEditing()},
-    };
-
     int added = 0;
-    for (const auto& binding : bindings) {
+    for (const auto& binding : publicBindings(m_iface)) {
         if (!binding.action) continue;
         CommandDescriptor descriptor;
         descriptor.id = QString::fromLatin1(binding.id);
@@ -66,6 +81,31 @@ int QgisBridge::seedCoreCommands(CommandRegistry& registry) const {
         if (registry.registerCommand(descriptor)) ++added;
     }
     return added;
+}
+
+int QgisBridge::bindRegisteredCommands(CommandRegistry& registry) const {
+    int bound = 0;
+    for (const auto& binding : publicBindings(m_iface)) {
+        if (!binding.action) continue;
+        const auto id = QString::fromLatin1(binding.id);
+        if (!registry.contains(id)) continue;
+        const auto descriptor = registry.command(id);
+        if (!descriptor.action) continue;
+        QAction* shellAction = descriptor.action.data();
+        QAction* nativeAction = binding.action;
+        QObject::connect(shellAction, &QAction::triggered, nativeAction, [nativeAction] {
+            nativeAction->trigger();
+        });
+        shellAction->setEnabled(nativeAction->isEnabled());
+        shellAction->setCheckable(nativeAction->isCheckable());
+        shellAction->setChecked(nativeAction->isChecked());
+        QObject::connect(nativeAction, &QAction::changed, shellAction, [shellAction, nativeAction] {
+            shellAction->setEnabled(nativeAction->isEnabled());
+            if (shellAction->isCheckable()) shellAction->setChecked(nativeAction->isChecked());
+        });
+        ++bound;
+    }
+    return bound;
 }
 
 } // namespace modernqgis

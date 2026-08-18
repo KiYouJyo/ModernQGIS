@@ -4,6 +4,8 @@ set(MODERNQGIS_FOUNDATION_SOURCES
     core/PaneRegistry.cpp
     bridge/NullQgisBridge.cpp
     i18n/LocalizationManager.cpp
+    shell/ShellStyle.cpp
+    shell/ModernShellWindow.cpp
 )
 
 set(MODERNQGIS_FOUNDATION_HEADERS
@@ -15,6 +17,8 @@ set(MODERNQGIS_FOUNDATION_HEADERS
     bridge/IQgisBridge.h
     bridge/NullQgisBridge.h
     i18n/LocalizationManager.h
+    shell/ShellStyle.h
+    shell/ModernShellWindow.h
 )
 
 add_library(modernqgis_foundation STATIC
@@ -50,7 +54,7 @@ if(MODERNQGIS_WITH_QGIS)
         bridge/QgisBridge.h
     )
     target_link_libraries(modernqgis_qgis_bridge
-        PUBLIC modernqgis_foundation QGIS::Core QGIS::Gui
+        PUBLIC modernqgis_foundation QGIS::Core QGIS::Gui Qt6::Xml
     )
 
     add_library(modernqgis_plugin MODULE
@@ -59,7 +63,7 @@ if(MODERNQGIS_WITH_QGIS)
         plugin/plugin_exports.cpp
     )
     target_link_libraries(modernqgis_plugin
-        PRIVATE modernqgis_qgis_bridge QGIS::Core QGIS::Gui
+        PRIVATE modernqgis_qgis_bridge QGIS::Core QGIS::Gui Qt6::Xml
     )
     set_target_properties(modernqgis_plugin PROPERTIES
         PREFIX ""

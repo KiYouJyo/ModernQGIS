@@ -1,0 +1,42 @@
+name: QGIS Integration
+
+on:
+  pull_request:
+    paths:
+      - "CMakeLists.txt"
+      - "cmake/**"
+      - "src/bridge/**"
+      - "src/plugin/**"
+      - "src/shell/**"
+      - ".github/workflows/qgis-integration.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: qgis-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  qgis-4-2-public-api:
+    runs-on: ubuntu-latest
+    container:
+      image: qgis/qgis:4.2.0-trixie
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install development headers
+        shell: bash
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build libqgis-dev qt6-base-dev qt6-tools-dev qt6-tools-dev-tools
+      - name: Configure against QGIS public SDK
+        run: >-
+          cmake -S . -B build-qgis -G Ninja
+          -DMODERNQGIS_WITH_QGIS=ON
+          -DMODERNQGIS_BUILD_SANDBOX=OFF
+          -DMODERNQGIS_BUILD_TESTS=OFF
+          -DQGIS_PREFIX_PATH=/usr
+      - name: Build QGIS bridge and plugin
+        run: cmake --build build-qgis --parallel

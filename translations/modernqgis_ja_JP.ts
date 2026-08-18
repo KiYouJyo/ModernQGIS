@@ -1,26 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
 <TS version="2.1" language="ja_JP">
-<context><name>SandboxWindow</name>
-<message><source>ModernQGIS — Foundation Sandbox</source><translation>ModernQGIS — Foundation Sandbox</translation></message>
-<message><source>Commands</source><translation>コマンド</translation></message>
-<message><source>New Project</source><translation>新規プロジェクト</translation></message>
-<message><source>Open Project</source><translation>プロジェクトを開く</translation></message>
-<message><source>Add Data</source><translation>データを追加</translation></message>
-<message><source>Explore</source><translation>探索</translation></message>
-<message><source>Full Extent</source><translation>全体表示</translation></message>
+<context><name>ModernShellWindow</name>
+<message><source>ModernQGIS — Map Workspace</source><translation>ModernQGIS — マップ ワークスペース</translation></message>
 <message><source>Contents</source><translation>コンテンツ</translation></message>
-<message><source>Layers will appear here</source><translation>レイヤーはここに表示されます</translation></message>
-<message><source>QGIS bridge is not connected in sandbox mode</source><translation>Sandbox モードでは QGIS bridge に接続していません</translation></message>
+<message><source>Layer Properties</source><translation>レイヤー プロパティ</translation></message>
+<message><source>ModernQGIS · City Planning.qgz</source><translation>ModernQGIS · 都市計画.qgz</translation></message>
+<message><source>Search tools, commands, layers, and settings  Ctrl+K</source><translation>ツール、コマンド、レイヤー、設定を検索  Ctrl+K</translation></message>
+<message><source>Global command search</source><translation>グローバル コマンド検索</translation></message>
+<message><source>Minimize</source><translation>最小化</translation></message>
+<message><source>Maximize or restore</source><translation>最大化または元に戻す</translation></message>
+<message><source>Close</source><translation>閉じる</translation></message>
+<message><source>Project</source><translation>プロジェクト</translation></message>
+<message><source>Map</source><translation>マップ</translation></message>
+<message><source>Insert</source><translation>挿入</translation></message>
+<message><source>Select</source><translation>選択</translation></message>
+<message><source>Analysis</source><translation>解析</translation></message>
+<message><source>Edit</source><translation>編集</translation></message>
+<message><source>View</source><translation>表示</translation></message>
+<message><source>Help</source><translation>ヘルプ</translation></message>
+<message><source>Collapse ribbon</source><translation>リボンを折りたたむ</translation></message>
+<message><source>Navigate</source><translation>ナビゲーション</translation></message>
+<message><source>Explore</source><translation>探索</translation></message>
+<message><source>Pan</source><translation>パン</translation></message>
+<message><source>Full Extent</source><translation>全体表示</translation></message>
+<message><source>Layer</source><translation>レイヤー</translation></message>
+<message><source>Add Data</source><translation>データを追加</translation></message>
 <message><source>Properties</source><translation>プロパティ</translation></message>
-<message><source>Select an object to inspect its properties.</source><translation>オブジェクトを選択するとプロパティを確認できます。</translation></message>
-<message><source>Map workspace placeholder</source><translation>マップ ワークスペースのプレースホルダー</translation></message>
-<message><source>Map 1</source><translation>マップ 1</translation></message>
-<message><source>Foundation mode — QGIS integration disabled</source><translation>Foundation モード — QGIS 連携は無効です</translation></message>
+<message><source>Attribute Table</source><translation>属性テーブル</translation></message>
+<message><source>Selection</source><translation>選択</translation></message>
+<message><source>Zoom To</source><translation>ズーム</translation></message>
+<message><source>Clear</source><translation>クリア</translation></message>
+<message><source>Measure</source><translation>計測</translation></message>
+<message><source>Distance</source><translation>距離</translation></message>
+<message><source>Area</source><translation>面積</translation></message>
+<message><source>Search layers</source><translation>レイヤーを検索</translation></message>
+<message><source>Drawing Order</source><translation>描画順序</translation></message>
+<message><source>Data Source</source><translation>データソース</translation></message>
+<message><source>City Planning Project</source><translation>都市計画プロジェクト</translation></message>
+<message><source>Planning Boundary</source><translation>計画区域</translation></message>
+<message><source>Road Centerlines</source><translation>道路中心線</translation></message>
+<message><source>Rivers</source><translation>河川水系</translation></message>
+<message><source>Building Footprints</source><translation>建物外形</translation></message>
+<message><source>Existing Green Space</source><translation>現況緑地</translation></message>
+<message><source>Satellite Imagery</source><translation>衛星画像</translation></message>
+<message><source>Layout workspace</source><translation>レイアウト ワークスペース</translation></message>
+<message><source>Layout 1</source><translation>レイアウト 1</translation></message>
+<message><source>General</source><translation>一般</translation></message>
+<message><source>Symbology</source><translation>シンボロジ</translation></message>
+<message><source>Labels</source><translation>ラベル</translation></message>
+<message><source>LineString · 1,284 features</source><translation>LineString · 1,284 地物</translation></message>
+<message><source>Renderer</source><translation>レンダラー</translation></message>
+<message><source>Single Symbol</source><translation>単一シンボル</translation></message>
+<message><source>Blend Mode</source><translation>描画モード</translation></message>
+<message><source>Normal</source><translation>標準</translation></message>
+<message><source>Visible Scale</source><translation>表示縮尺</translation></message>
+<message><source>All Scales</source><translation>すべての縮尺</translation></message>
+<message><source>Opacity</source><translation>不透明度</translation></message>
+<message><source>Apply</source><translation>適用</translation></message>
+<message><source>Reset</source><translation>リセット</translation></message>
+<message><source>Scale 1:10,000</source><translation>縮尺 1:10,000</translation></message>
+<message><source>Rotation 0°</source><translation>回転 0°</translation></message>
+<message><source>✓ Rendering complete</source><translation>✓ 描画完了</translation></message>
 </context>
 <context><name>ModernQgisPlugin</name>
-<message><source>ModernQGIS Shell Preview</source><translation>ModernQGIS Shell プレビュー</translation></message>
-<message><source>ModernQGIS</source><translation>ModernQGIS</translation></message>
-<message><source>The v0.2 bridge is connected. Full shell replacement begins in v0.3.</source><translation>v0.2 bridge に接続しました。完全な Shell 置換は v0.3 から開始します。</translation></message>
+<message><source>Open ModernQGIS Shell Preview</source><translation>ModernQGIS Shell プレビューを開く</translation></message>
 <message><source>&amp;ModernQGIS</source><translation>&amp;ModernQGIS</translation></message>
-</context></TS>
+</context>
+<context><name>QObject</name>
+<message><source>Map canvas</source><translation>マップ キャンバス</translation></message>
+</context>
+</TS>
