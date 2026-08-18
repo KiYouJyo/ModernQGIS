@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "agent/**", "feature/**", "fix/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: python scripts/check_i18n.py
+      - run: python scripts/check_release_contract.py
+      - name: Reject committed signing material
+        shell: bash
+        run: |
+          if git ls-files | grep -Ei '\.(pfx|p12|pem|key|snk)$'; then
+            echo "Signing/private-key material must not be committed."
+            exit 1
+          fi
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: {os: [ubuntu-latest, windows-latest]}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          modules: "qttools"
+          cache: true
+      - run: cmake -S . -B build -DMODERNQGIS_WITH_QGIS=OFF -DMODERNQGIS_BUILD_SANDBOX=ON -DMODERNQGIS_BUILD_TESTS=ON
+      - run: cmake --build build --config Release --parallel
+      - run: ctest --test-dir build -C Release --output-on-failure
