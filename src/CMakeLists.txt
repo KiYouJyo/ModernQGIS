@@ -26,6 +26,9 @@ add_library(modernqgis_foundation STATIC
     ${MODERNQGIS_FOUNDATION_SOURCES}
     ${MODERNQGIS_FOUNDATION_HEADERS}
 )
+set_target_properties(modernqgis_foundation PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
 
 target_include_directories(modernqgis_foundation
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -53,6 +56,9 @@ if(MODERNQGIS_WITH_QGIS)
     add_library(modernqgis_qgis_bridge STATIC
         bridge/QgisBridge.cpp
         bridge/QgisBridge.h
+    )
+    set_target_properties(modernqgis_qgis_bridge PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
     )
     target_link_libraries(modernqgis_qgis_bridge
         PUBLIC modernqgis_foundation QGIS::Core QGIS::Gui Qt6::Xml
