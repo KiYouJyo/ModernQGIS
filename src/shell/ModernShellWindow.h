@@ -7,6 +7,7 @@
 
 #include <QMainWindow>
 
+class QAction;
 class QCloseEvent;
 class QLineEdit;
 class QSplitter;
