@@ -8,10 +8,21 @@ v0.1–v0.2 use GitHub Preview only. A build, artifact, tag, and GitHub Release 
 
 ```text
 ModernQGIS-ShellPreview-vX.Y.Z-windows-x64.zip
+├─ modernqgis-sandbox.exe
+├─ Qt runtime files required by the sandbox
+├─ LICENSE
+└─ docs/
+   ├─ README.md
+   ├─ README.ja.md
+   ├─ README.en.md
+   ├─ vX.Y.Z.zh-CN.md
+   ├─ vX.Y.Z.ja-JP.md
+   └─ vX.Y.Z.en-US.md
+
 SHA256SUMS
 ```
 
-Foundation packages contain the standalone Qt sandbox/runtime only and **must not bundle QGIS**.
+Foundation packages contain the standalone Qt sandbox/runtime only and **must not bundle QGIS**. The package must retain licensing and three-language user-facing release documentation.
 
 Every publishable version requires `release/notes/vX.Y.Z.zh-CN.md`, `.ja-JP.md`, and `.en-US.md` with equivalent release facts.
 
