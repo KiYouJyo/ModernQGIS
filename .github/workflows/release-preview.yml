@@ -46,9 +46,13 @@ jobs:
         run: |
           $v = "${{ steps.version.outputs.version }}"
           $stage = "dist/ModernQGIS-ShellPreview-v$v-windows-x64"
-          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          $docs = "$stage/docs"
+          New-Item -ItemType Directory -Force -Path $stage, $docs | Out-Null
           Copy-Item "build/src/Release/modernqgis-sandbox.exe" $stage
           & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release --no-translations "$stage/modernqgis-sandbox.exe"
+          Copy-Item "LICENSE" $stage
+          Copy-Item "README.md", "README.ja.md", "README.en.md" $docs
+          Copy-Item "release/notes/v$v.zh-CN.md", "release/notes/v$v.ja-JP.md", "release/notes/v$v.en-US.md" $docs
           Compress-Archive -Path "$stage/*" -DestinationPath "dist/ModernQGIS-ShellPreview-v$v-windows-x64.zip"
           $file = "dist/ModernQGIS-ShellPreview-v$v-windows-x64.zip"
           $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
