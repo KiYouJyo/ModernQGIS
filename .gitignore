@@ -1,0 +1,39 @@
+# Build
+/build/
+/build-*/
+/out/
+/dist/
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+*.qm
+*.user
+*.user.*
+
+# IDE / OS
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Packages
+/release/out/
+*.zip
+*.7z
+*.tar.gz
+*.sha256
+SHA256SUMS
+
+# Credentials / signing
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+*.cer
+*.snk
+.env
+.env.*

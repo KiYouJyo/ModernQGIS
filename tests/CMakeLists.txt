@@ -1,0 +1,10 @@
+function(modernqgis_add_test name source)
+    add_executable(${name} ${source})
+    target_link_libraries(${name} PRIVATE modernqgis_foundation Qt6::Test)
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+modernqgis_add_test(test_command_registry test_command_registry.cpp)
+modernqgis_add_test(test_pane_registry test_pane_registry.cpp)
+modernqgis_add_test(test_context_registry test_context_registry.cpp)
+modernqgis_add_test(test_localization test_localization.cpp)
