@@ -6,6 +6,7 @@ set(MODERNQGIS_FOUNDATION_SOURCES
     i18n/LocalizationManager.cpp
     shell/ShellStyle.cpp
     shell/ModernShellWindow.cpp
+    shell/ModernShellIntegration.cpp
 )
 
 set(MODERNQGIS_FOUNDATION_HEADERS
