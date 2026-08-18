@@ -9,6 +9,7 @@ class QgisInterface;
 
 namespace modernqgis {
 class ModernShellWindow;
+class QgisBridge;
 
 class ModernQgisPlugin final : public QObject, public QgisPlugin {
     Q_OBJECT
@@ -23,5 +24,6 @@ private:
     QgisInterface* m_iface = nullptr;
     QAction* m_action = nullptr;
     ModernShellWindow* m_shell = nullptr;
+    QgisBridge* m_bridge = nullptr;
 };
 } // namespace modernqgis

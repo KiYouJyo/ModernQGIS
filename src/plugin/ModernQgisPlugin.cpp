@@ -33,8 +33,10 @@ void ModernQgisPlugin::showShell() {
     if (!m_shell) {
         m_shell = new ModernShellWindow(m_iface->mainWindow());
         m_shell->setAttribute(Qt::WA_DeleteOnClose, false);
-        QgisBridge bridge(m_iface);
-        bridge.bindRegisteredCommands(m_shell->commandRegistry());
+
+        m_bridge = new QgisBridge(m_iface, this);
+        m_bridge->attachWorkspace(m_shell);
+        m_bridge->bindRegisteredCommands(m_shell->commandRegistry());
     }
     m_shell->show();
     m_shell->raise();
@@ -42,6 +44,12 @@ void ModernQgisPlugin::showShell() {
 }
 
 void ModernQgisPlugin::unload() {
+    // Destroy bridge-owned map tools/models while the shell widgets they
+    // reference are still alive.
+    if (m_bridge) {
+        delete m_bridge;
+        m_bridge = nullptr;
+    }
     if (m_shell) {
         m_shell->close();
         delete m_shell;
