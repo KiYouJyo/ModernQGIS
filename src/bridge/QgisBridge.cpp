@@ -136,7 +136,8 @@ bool QgisBridge::attachWorkspace(ModernShellWindow* shell) {
     m_selectTool = new QgsMapToolIdentifyFeature(m_canvas);
     m_selectTool->setParent(this);
 
-    connect(m_selectTool, &QgsMapToolIdentifyFeature::featureIdentified,
+    connect(m_selectTool,
+            qOverload<const QgsFeature&>(&QgsMapToolIdentifyFeature::featureIdentified),
             this, [this](const QgsFeature& feature) {
         auto* layer = qobject_cast<QgsVectorLayer*>(m_iface ? m_iface->activeLayer() : nullptr);
         if (!layer) return;
