@@ -2,6 +2,7 @@
 #include "shell/ModernShellWindow.h"
 
 #include <QAction>
+#include <QFrame>
 #include <QLabel>
 #include <QLayout>
 #include <QTabWidget>
@@ -61,6 +62,35 @@ void ModernShellWindow::setProjectDisplayName(const QString& name) {
         title->setText(caption);
     }
     setWindowTitle(caption);
+}
+
+void ModernShellWindow::setActiveLayerSummary(const QString& name, const QString& detail) {
+    auto* rightPane = findChild<QWidget*>(QStringLiteral("RightPane"));
+    auto* card = rightPane ? rightPane->findChild<QFrame*>(QStringLiteral("LayerCard")) : nullptr;
+    if (!card) return;
+
+    if (auto* nameLabel = card->findChild<QLabel*>(QStringLiteral("PaneTitle"))) {
+        nameLabel->setText(name.isEmpty() ? tr("No active layer") : name);
+    }
+    if (auto* detailLabel = card->findChild<QLabel*>(QStringLiteral("Subtle"))) {
+        detailLabel->setText(detail.isEmpty() ? tr("Select a layer to inspect it") : detail);
+    }
+}
+
+void ModernShellWindow::setMapStatus(const QString& coordinates,
+                                     const QString& scale,
+                                     const QString& rotation,
+                                     const QString& crs,
+                                     const QString& renderingState) {
+    auto* bar = findChild<QWidget*>(QStringLiteral("StatusBar"));
+    if (!bar) return;
+
+    const auto values = QList<QString>{coordinates, scale, rotation, crs, renderingState};
+    const auto labels = bar->findChildren<QLabel*>(QStringLiteral("Subtle"), Qt::FindDirectChildrenOnly);
+    const int count = qMin(values.size(), labels.size());
+    for (int i = 0; i < count; ++i) {
+        if (!values.at(i).isEmpty()) labels.at(i)->setText(values.at(i));
+    }
 }
 
 } // namespace modernqgis

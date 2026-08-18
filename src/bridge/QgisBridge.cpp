@@ -12,11 +12,15 @@
 #include <qgslayertreemodel.h>
 #include <qgslayertreeview.h>
 #include <qgsmapcanvas.h>
+#include <qgsmapsettings.h>
 #include <qgsmaptoolidentifyfeature.h>
 #include <qgsmaptoolpan.h>
 #include <qgsmaptoolzoom.h>
+#include <qgspointxy.h>
 #include <qgsproject.h>
+#include <qgsrasterlayer.h>
 #include <qgsvectorlayer.h>
+#include <qgswkbtypes.h>
 
 #include <QAction>
 #include <QDockWidget>
@@ -48,6 +52,17 @@ QList<Binding> publicBindings(QgisInterface* iface) {
 QAction* registeredAction(CommandRegistry& registry, const QString& id) {
     if (!registry.contains(id)) return nullptr;
     return registry.command(id).action.data();
+}
+
+QString layerDetail(QgsMapLayer* layer) {
+    if (auto* vector = qobject_cast<QgsVectorLayer*>(layer)) {
+        const QString geometry = QgsWkbTypes::displayString(vector->wkbType());
+        return QStringLiteral("%1 · %2 features").arg(geometry).arg(vector->featureCount());
+    }
+    if (auto* raster = qobject_cast<QgsRasterLayer*>(layer)) {
+        return QStringLiteral("Raster · %1 bands").arg(raster->bandCount());
+    }
+    return layer ? QStringLiteral("Map layer") : QString{};
 }
 
 } // namespace
@@ -127,6 +142,21 @@ bool QgisBridge::attachWorkspace(ModernShellWindow* shell) {
     shell->replaceMapCanvas(m_canvas);
     shell->replaceContentsTree(m_layerTreeView);
 
+    const auto updateLayerSummary = [this](QgsMapLayer* layer) {
+        if (!m_shell) return;
+        m_shell->setActiveLayerSummary(layer ? layer->name() : QString{}, layerDetail(layer));
+    };
+    const auto updateMapStatus = [this](const QString& coordinates = QString{}, const QString& rendering = QString{}) {
+        if (!m_shell || !m_canvas) return;
+        const double scaleValue = m_canvas->scale();
+        const double rotationValue = m_canvas->rotation();
+        const QString scale = QStringLiteral("Scale 1:%1").arg(qRound64(scaleValue));
+        const QString rotation = QStringLiteral("Rotation %1°").arg(rotationValue, 0, 'f', 1);
+        const QString crs = m_canvas->mapSettings().destinationCrs().authid();
+        m_shell->setMapStatus(coordinates, scale, rotation, crs,
+                              rendering.isEmpty() ? QStringLiteral("✓ Rendering complete") : rendering);
+    };
+
     m_panTool = new QgsMapToolPan(m_canvas);
     m_panTool->setParent(this);
     m_zoomInTool = new QgsMapToolZoom(m_canvas, false);
@@ -146,9 +176,10 @@ bool QgisBridge::attachWorkspace(ModernShellWindow* shell) {
     });
 
     connect(m_layerTreeView, &QgsLayerTreeView::currentLayerChanged,
-            this, [this](QgsMapLayer* layer) {
+            this, [this, updateLayerSummary](QgsMapLayer* layer) {
         if (m_iface) m_iface->setActiveLayer(layer);
         if (m_selectTool) m_selectTool->setLayer(qobject_cast<QgsVectorLayer*>(layer));
+        updateLayerSummary(layer);
 
         const bool vectorActive = qobject_cast<QgsVectorLayer*>(layer) != nullptr;
         if (m_shell) {
@@ -158,23 +189,48 @@ bool QgisBridge::attachWorkspace(ModernShellWindow* shell) {
         }
     });
 
+    connect(m_canvas, &QgsMapCanvas::xyCoordinates, this,
+            [updateMapStatus](const QgsPointXY& point) {
+        updateMapStatus(QStringLiteral("%1, %2").arg(point.x(), 0, 'f', 5).arg(point.y(), 0, 'f', 5));
+    });
+    connect(m_canvas, &QgsMapCanvas::extentsChanged, this,
+            [updateMapStatus] { updateMapStatus(); });
+    connect(m_canvas, &QgsMapCanvas::renderStarting, this,
+            [updateMapStatus] { updateMapStatus(QString{}, QStringLiteral("Rendering…")); });
+    connect(m_canvas, &QgsMapCanvas::mapCanvasRefreshed, this,
+            [updateMapStatus] { updateMapStatus(QString{}, QStringLiteral("✓ Rendering complete")); });
+
     if (auto* active = m_iface->activeLayer()) {
         m_layerTreeView->setCurrentLayer(active);
         m_selectTool->setLayer(qobject_cast<QgsVectorLayer*>(active));
+        updateLayerSummary(active);
+    } else {
+        updateLayerSummary(nullptr);
     }
 
-    connect(m_iface, &QgisInterface::projectRead, this, [this] {
+    connect(m_iface, &QgisInterface::projectRead, this, [this, updateMapStatus] {
         syncProjectTitle();
-        if (m_canvas) QTimer::singleShot(0, m_canvas, [this] { m_canvas->zoomToProjectExtent(); });
+        if (m_canvas) QTimer::singleShot(0, m_canvas, [this, updateMapStatus] {
+            m_canvas->zoomToProjectExtent();
+            updateMapStatus();
+        });
     });
-    connect(m_iface, &QgisInterface::newProjectCreated, this, [this] {
+    connect(m_iface, &QgisInterface::newProjectCreated, this, [this, updateMapStatus] {
         syncProjectTitle();
-        if (m_canvas) m_canvas->refresh();
+        if (m_canvas) {
+            m_canvas->refresh();
+            updateMapStatus();
+        }
     });
 
     syncProjectTitle();
     if (!project->mapLayers().isEmpty()) {
-        QTimer::singleShot(0, m_canvas, [this] { m_canvas->zoomToProjectExtent(); });
+        QTimer::singleShot(0, m_canvas, [this, updateMapStatus] {
+            m_canvas->zoomToProjectExtent();
+            updateMapStatus();
+        });
+    } else {
+        updateMapStatus();
     }
     m_canvas->setMapTool(m_panTool);
     return true;

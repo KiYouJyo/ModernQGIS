@@ -27,12 +27,18 @@ public:
     ContextRegistry& contextRegistry() { return m_contexts; }
 
     // Generic integration points used by runtime bridges. These deliberately
-    // accept Qt widgets/actions only so the shell remains independent from
-    // QGIS API types and version churn.
+    // accept Qt widgets/actions/plain values only so the shell remains
+    // independent from QGIS API types and version churn.
     QAction* commandAction(const QString& id) const;
     void replaceMapCanvas(QWidget* widget);
     void replaceContentsTree(QWidget* widget);
     void setProjectDisplayName(const QString& name);
+    void setActiveLayerSummary(const QString& name, const QString& detail);
+    void setMapStatus(const QString& coordinates,
+                      const QString& scale,
+                      const QString& rotation,
+                      const QString& crs,
+                      const QString& renderingState);
 
 protected:
     void closeEvent(QCloseEvent* event) override;
