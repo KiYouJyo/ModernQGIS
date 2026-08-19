@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 
 project(
     ModernQGIS
-    VERSION 0.3.0
+    VERSION 0.4.0
     DESCRIPTION "Modern desktop shell and interaction architecture for QGIS"
     LANGUAGES CXX
 )
@@ -48,6 +48,14 @@ endif()
 if(TARGET modernqgis_plugin)
     qt_add_translations(
         modernqgis_plugin
+        TS_FILES ${MODERNQGIS_TS_FILES}
+        RESOURCE_PREFIX "/i18n"
+    )
+endif()
+
+if(TARGET modernqgis-launcher)
+    qt_add_translations(
+        modernqgis-launcher
         TS_FILES ${MODERNQGIS_TS_FILES}
         RESOURCE_PREFIX "/i18n"
     )
