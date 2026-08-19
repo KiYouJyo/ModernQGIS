@@ -9,7 +9,7 @@ def main():
     manifest=json.loads((ROOT/'release/release.json').read_text(encoding='utf-8')); version=manifest.get('version')
     if version!=match.group(1): fail(f'CMake version {match.group(1)} != release version {version}')
     if manifest.get('product')!='ModernQGIS': fail('unexpected product name')
-    if manifest.get('qgisBundled') is not False: fail('foundation contract must keep qgisBundled=false')
+    if manifest.get('qgisBundled') is not False: fail('ModernQGIS must not vendor or bundle QGIS')
     locales=['zh-CN','ja-JP','en-US']
     if manifest.get('locales')!=locales: fail(f'locales must be exactly {locales}')
     for locale in locales:
@@ -17,6 +17,7 @@ def main():
         if not note.is_file() or not note.read_text(encoding='utf-8').strip(): fail(f'missing release note {note.relative_to(ROOT)}')
     github=manifest.get('channels',{}).get('github',{})
     if github.get('publish') not in (True,False): fail('channels.github.publish must be boolean')
-    if github.get('packageKind')!='ShellPreview': fail('foundation packageKind must be ShellPreview')
-    print(f"release contract OK: ModernQGIS v{version}, publish={github['publish']}"); return 0
+    if github.get('packageKind')!='FunctionalPreview': fail('v0.4 packageKind must be FunctionalPreview')
+    if github.get('platform')!='windows' or github.get('arch')!='x64': fail('v0.4 preview must target windows x64')
+    print(f"release contract OK: ModernQGIS v{version}, package={github['packageKind']}, publish={github['publish']}"); return 0
 if __name__=='__main__': raise SystemExit(main())

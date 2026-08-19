@@ -12,6 +12,13 @@
 <message><source>Maximize or restore</source><translation>Maximize or restore</translation></message>
 <message><source>Close</source><translation>Close</translation></message>
 <message><source>Project</source><translation>Project</translation></message>
+<message><source>New</source><translation>New</translation></message>
+<message><source>Open</source><translation>Open</translation></message>
+<message><source>Save</source><translation>Save</translation></message>
+<message><source>Zoom</source><translation>Zoom</translation></message>
+<message><source>Zoom In</source><translation>Zoom In</translation></message>
+<message><source>Zoom Out</source><translation>Zoom Out</translation></message>
+<message><source>Toggle Editing</source><translation>Toggle Editing</translation></message>
 <message><source>Map</source><translation>Map</translation></message>
 <message><source>Insert</source><translation>Insert</translation></message>
 <message><source>Select</source><translation>Select</translation></message>
@@ -64,10 +71,20 @@
 <message><source>✓ Rendering complete</source><translation>✓ Rendering complete</translation></message>
 </context>
 <context><name>ModernQgisPlugin</name>
-<message><source>Open ModernQGIS Shell Preview</source><translation>Open ModernQGIS Shell Preview</translation></message>
+<message><source>Open ModernQGIS</source><translation>Open ModernQGIS</translation></message>
 <message><source>&amp;ModernQGIS</source><translation>&amp;ModernQGIS</translation></message>
 </context>
 <context><name>QObject</name>
 <message><source>Map canvas</source><translation>Map canvas</translation></message>
+<message><source>ModernQGIS Measure</source><translation>ModernQGIS Measure</translation></message>
+<message><source>Distance: left-click to add points; right-click or Enter to finish; Esc clears.</source><translation>Distance: left-click to add points; right-click or Enter to finish; Esc clears.</translation></message>
+<message><source>Area: left-click to add vertices; right-click or Enter to finish; Esc clears.</source><translation>Area: left-click to add vertices; right-click or Enter to finish; Esc clears.</translation></message>
+<message><source>Add at least three vertices to measure area.</source><translation>Add at least three vertices to measure area.</translation></message>
+<message><source>Add at least two points to measure distance.</source><translation>Add at least two points to measure distance.</translation></message>
+<message><source>Area: %1 %2</source><translation>Area: %1 %2</translation></message>
+<message><source>Distance: %1 %2</source><translation>Distance: %1 %2</translation></message>
+<message><source>ModernQGIS</source><translation>ModernQGIS</translation></message>
+<message><source>QGIS 4.x was not found. Install QGIS 4.2 or set MODERNQGIS_QGIS_EXECUTABLE to qgis-bin.exe.</source><translation>QGIS 4.x was not found. Install QGIS 4.2 or set MODERNQGIS_QGIS_EXECUTABLE to qgis-bin.exe.</translation></message>
+<message><source>QGIS was found, but ModernQGIS could not start it.</source><translation>QGIS was found, but ModernQGIS could not start it.</translation></message>
 </context>
 </TS>

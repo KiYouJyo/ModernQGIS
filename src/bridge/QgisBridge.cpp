@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "bridge/QgisBridge.h"
 
+#include "bridge/MeasureMapTool.h"
 #include "core/CommandDescriptor.h"
 #include "core/CommandRegistry.h"
 #include "shell/ModernShellWindow.h"
@@ -165,6 +166,10 @@ bool QgisBridge::attachWorkspace(ModernShellWindow* shell) {
     m_zoomOutTool->setParent(this);
     m_selectTool = new QgsMapToolIdentifyFeature(m_canvas);
     m_selectTool->setParent(this);
+    m_measureDistanceTool = new MeasureMapTool(m_canvas, m_iface->messageBar(), MeasureMapTool::Mode::Distance);
+    m_measureDistanceTool->setParent(this);
+    m_measureAreaTool = new MeasureMapTool(m_canvas, m_iface->messageBar(), MeasureMapTool::Mode::Area);
+    m_measureAreaTool->setParent(this);
 
     connect(m_selectTool,
             qOverload<const QgsFeature&>(&QgsMapToolIdentifyFeature::featureIdentified),
@@ -290,15 +295,15 @@ int QgisBridge::bindRegisteredCommands(CommandRegistry& registry) {
             m_canvas->refresh();
         }
     });
+    bindCanvas(QStringLiteral("map.measure"), [this] {
+        if (m_measureDistanceTool) m_canvas->setMapTool(m_measureDistanceTool);
+    });
+    bindCanvas(QStringLiteral("map.measure-area"), [this] {
+        if (m_measureAreaTool) m_canvas->setMapTool(m_measureAreaTool);
+    });
     bindCanvas(QStringLiteral("layer.add-data"), [this] {
         if (m_iface) m_iface->openDataSourceManagerPage(QString());
     });
-
-    // Distance/area measurement still depends on QGIS application's native
-    // map canvas. Keep these disabled until v0.4 adds bridge-owned measure
-    // tools for the embedded canvas instead of silently operating elsewhere.
-    if (auto* measure = registeredAction(registry, QStringLiteral("map.measure"))) measure->setEnabled(false);
-    if (auto* area = registeredAction(registry, QStringLiteral("map.measure-area"))) area->setEnabled(false);
 
     return bound;
 }

@@ -3,9 +3,12 @@
 
 #include "bridge/QgisBridge.h"
 #include "shell/ModernShellWindow.h"
+#include "shell/V04CommandSurface.h"
 
 #include <qgisinterface.h>
 #include <QAction>
+#include <QTimer>
+#include <QtGlobal>
 
 namespace {
 const QString kName = QStringLiteral("ModernQGIS");
@@ -23,9 +26,15 @@ ModernQgisPlugin::~ModernQgisPlugin() { unload(); }
 
 void ModernQgisPlugin::initGui() {
     if (!m_iface || m_action) return;
-    m_action = new QAction(tr("Open ModernQGIS Shell Preview"), this);
+    m_action = new QAction(tr("Open ModernQGIS"), this);
     connect(m_action, &QAction::triggered, this, &ModernQgisPlugin::showShell);
     m_iface->addPluginToMenu(tr("&ModernQGIS"), m_action);
+
+    // The signed launcher sets this flag so an enabled ModernQGIS plugin opens
+    // its shell as soon as QGIS has finished creating the plugin GUI.
+    if (qEnvironmentVariableIntValue("MODERNQGIS_AUTO_OPEN") == 1) {
+        QTimer::singleShot(0, this, &ModernQgisPlugin::showShell);
+    }
 }
 
 void ModernQgisPlugin::showShell() {
@@ -33,6 +42,7 @@ void ModernQgisPlugin::showShell() {
     if (!m_shell) {
         m_shell = new ModernShellWindow(m_iface->mainWindow());
         m_shell->setAttribute(Qt::WA_DeleteOnClose, false);
+        installV04CommandSurface(m_shell);
 
         m_bridge = new QgisBridge(m_iface, this);
         m_bridge->attachWorkspace(m_shell);

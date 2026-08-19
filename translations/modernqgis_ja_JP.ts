@@ -12,6 +12,13 @@
 <message><source>Maximize or restore</source><translation>最大化または元に戻す</translation></message>
 <message><source>Close</source><translation>閉じる</translation></message>
 <message><source>Project</source><translation>プロジェクト</translation></message>
+<message><source>New</source><translation>新規</translation></message>
+<message><source>Open</source><translation>開く</translation></message>
+<message><source>Save</source><translation>保存</translation></message>
+<message><source>Zoom</source><translation>ズーム</translation></message>
+<message><source>Zoom In</source><translation>ズームイン</translation></message>
+<message><source>Zoom Out</source><translation>ズームアウト</translation></message>
+<message><source>Toggle Editing</source><translation>編集を切り替え</translation></message>
 <message><source>Map</source><translation>マップ</translation></message>
 <message><source>Insert</source><translation>挿入</translation></message>
 <message><source>Select</source><translation>選択</translation></message>
@@ -64,10 +71,20 @@
 <message><source>✓ Rendering complete</source><translation>✓ 描画完了</translation></message>
 </context>
 <context><name>ModernQgisPlugin</name>
-<message><source>Open ModernQGIS Shell Preview</source><translation>ModernQGIS Shell プレビューを開く</translation></message>
+<message><source>Open ModernQGIS</source><translation>ModernQGIS を開く</translation></message>
 <message><source>&amp;ModernQGIS</source><translation>&amp;ModernQGIS</translation></message>
 </context>
 <context><name>QObject</name>
 <message><source>Map canvas</source><translation>マップ キャンバス</translation></message>
+<message><source>ModernQGIS Measure</source><translation>ModernQGIS 計測</translation></message>
+<message><source>Distance: left-click to add points; right-click or Enter to finish; Esc clears.</source><translation>距離：左クリックで点を追加、右クリックまたは Enter で完了、Esc でクリアします。</translation></message>
+<message><source>Area: left-click to add vertices; right-click or Enter to finish; Esc clears.</source><translation>面積：左クリックで頂点を追加、右クリックまたは Enter で完了、Esc でクリアします。</translation></message>
+<message><source>Add at least three vertices to measure area.</source><translation>面積を計測するには少なくとも 3 つの頂点を追加してください。</translation></message>
+<message><source>Add at least two points to measure distance.</source><translation>距離を計測するには少なくとも 2 点を追加してください。</translation></message>
+<message><source>Area: %1 %2</source><translation>面積：%1 %2</translation></message>
+<message><source>Distance: %1 %2</source><translation>距離：%1 %2</translation></message>
+<message><source>ModernQGIS</source><translation>ModernQGIS</translation></message>
+<message><source>QGIS 4.x was not found. Install QGIS 4.2 or set MODERNQGIS_QGIS_EXECUTABLE to qgis-bin.exe.</source><translation>QGIS 4.x が見つかりません。QGIS 4.2 をインストールするか、MODERNQGIS_QGIS_EXECUTABLE に qgis-bin.exe のパスを設定してください。</translation></message>
+<message><source>QGIS was found, but ModernQGIS could not start it.</source><translation>QGIS は見つかりましたが、ModernQGIS から起動できませんでした。</translation></message>
 </context>
 </TS>

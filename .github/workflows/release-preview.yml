@@ -1,4 +1,4 @@
-name: Build signed preview package
+name: Build signed functional preview
 
 on:
   workflow_dispatch:
@@ -6,6 +6,15 @@ on:
     paths:
       - ".github/workflows/release-preview.yml"
       - "installer/**"
+      - "release/**"
+      - "src/**"
+      - "tests/**"
+      - "translations/**"
+      - "cmake/**"
+      - "scripts/**"
+      - "CMakeLists.txt"
+      - "README*"
+      - "LICENSE"
   push:
     branches: ["main"]
     tags: ["v*"]
@@ -17,6 +26,7 @@ on:
       - "tests/**"
       - "translations/**"
       - "cmake/**"
+      - "scripts/**"
       - "CMakeLists.txt"
       - "README*"
       - "LICENSE"
@@ -27,7 +37,7 @@ permissions:
 jobs:
   package-windows-x64:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -53,13 +63,65 @@ jobs:
           if ("${{ github.ref_name }}" -ne "v${{ steps.version.outputs.version }}") { throw "Tag/version mismatch" }
           if ("${{ steps.version.outputs.publish }}" -ne "true") { throw "Tagged publication requires publish=true" }
 
-      - uses: jurplel/install-qt-action@v4
-        with:
-          version: "6.8.3"
-          cache: true
+      - name: Install OSGeo4W QGIS development SDK and Qt 6
+        id: osgeo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = "C:\OSGeo4W"
+          $site = "https://download.osgeo.org/osgeo4w/v2/"
+          $setupExe = Join-Path $env:RUNNER_TEMP "osgeo4w-setup.exe"
+          $setupIni = Join-Path $env:RUNNER_TEMP "osgeo4w-setup.ini"
+          Invoke-WebRequest -Uri ($site + "osgeo4w-setup.exe") -OutFile $setupExe
+          Invoke-WebRequest -Uri ($site + "x86_64/setup.ini") -OutFile $setupIni
+          $catalog = Get-Content $setupIni -Raw
 
-      - name: Configure
-        run: cmake -S . -B build -DMODERNQGIS_WITH_QGIS=OFF -DMODERNQGIS_BUILD_TESTS=ON -DMODERNQGIS_BUILD_SANDBOX=ON
+          function Has-Package([string]$name) {
+            return $catalog -match ("(?m)^@\s+" + [regex]::Escape($name) + "\s*$")
+          }
+
+          if (Has-Package "qgis-devel") {
+            $qgisPackage = "qgis-devel"
+            $qgisSubdir = "qgis"
+          } elseif (Has-Package "qgis-qt6-devel") {
+            $qgisPackage = "qgis-qt6-devel"
+            $qgisSubdir = "qgis-qt6"
+          } else {
+            throw "No supported QGIS development package was found in the current OSGeo4W catalog."
+          }
+
+          $packages = "$qgisPackage,qt6-devel,qt6-libs,qt6-tools"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          Start-Process $setupExe -ArgumentList @(
+            '--advanced', '--autoaccept', '--quiet-mode', '--only-site',
+            '-R', $root,
+            '-s', $site,
+            '-P', $packages
+          ) -Wait -NoNewWindow
+
+          $qgisPrefix = Join-Path $root "apps\$qgisSubdir"
+          $qtPrefix = Join-Path $root "apps\qt6"
+          if (-not (Test-Path (Join-Path $qgisPrefix "include\qgis.h"))) { throw "QGIS public headers were not installed at $qgisPrefix" }
+          if (-not (Test-Path (Join-Path $qtPrefix "lib\cmake\Qt6\Qt6Config.cmake"))) { throw "Qt6 CMake package was not installed at $qtPrefix" }
+
+          Add-Content $env:GITHUB_PATH (Join-Path $root "bin")
+          Add-Content $env:GITHUB_PATH (Join-Path $qtPrefix "bin")
+          "root=$root" >> $env:GITHUB_OUTPUT
+          "qgis-prefix=$qgisPrefix" >> $env:GITHUB_OUTPUT
+          "qt-prefix=$qtPrefix" >> $env:GITHUB_OUTPUT
+          "qgis-package=$qgisPackage" >> $env:GITHUB_OUTPUT
+
+      - name: Configure functional QGIS build
+        shell: pwsh
+        run: |
+          $prefixes = "${{ steps.osgeo.outputs.qt-prefix }};${{ steps.osgeo.outputs.root }}"
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+            -DMODERNQGIS_WITH_QGIS=ON `
+            -DMODERNQGIS_BUILD_TESTS=ON `
+            -DMODERNQGIS_BUILD_SANDBOX=ON `
+            -DQGIS_PREFIX_PATH="${{ steps.osgeo.outputs.qgis-prefix }}" `
+            -DCMAKE_PREFIX_PATH="$prefixes" `
+            -DQt6_DIR="${{ steps.osgeo.outputs.qt-prefix }}\lib\cmake\Qt6"
 
       - name: Build and test
         shell: pwsh
@@ -67,19 +129,39 @@ jobs:
           cmake --build build --config Release --parallel
           ctest --test-dir build -C Release --output-on-failure
 
-      - name: Stage runtime
+      - name: Stage functional runtime
         id: stage
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           $v = "${{ steps.version.outputs.version }}"
-          $stage = "dist/ModernQGIS-ShellPreview-v$v-windows-x64"
+          $stage = "dist/ModernQGIS-v$v-windows-x64"
+          $plugins = "$stage/plugins"
           $docs = "$stage/docs"
-          New-Item -ItemType Directory -Force -Path $stage, $docs | Out-Null
-          Copy-Item "build/src/Release/modernqgis-sandbox.exe" $stage
-          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release --no-translations "$stage/modernqgis-sandbox.exe"
+          New-Item -ItemType Directory -Force -Path $stage, $plugins, $docs | Out-Null
+
+          $launcher = Get-ChildItem build -Filter modernqgis-launcher.exe -Recurse | Where-Object { $_.FullName -match 'Release' } | Select-Object -First 1
+          $plugin = Get-ChildItem build -Filter modernqgis.dll -Recurse | Where-Object { $_.FullName -match 'Release' } | Select-Object -First 1
+          if (-not $launcher) { throw "modernqgis-launcher.exe was not produced." }
+          if (-not $plugin) { throw "modernqgis.dll QGIS plugin was not produced." }
+
+          Copy-Item $launcher.FullName "$stage/modernqgis-launcher.exe"
+          Copy-Item $plugin.FullName "$plugins/modernqgis.dll"
+
+          $windeployqt = "${{ steps.osgeo.outputs.qt-prefix }}\bin\windeployqt.exe"
+          if (-not (Test-Path $windeployqt)) { throw "windeployqt.exe was not found." }
+          & $windeployqt --release --no-translations "$stage/modernqgis-launcher.exe"
+          if ($LASTEXITCODE -ne 0) { throw "windeployqt failed for ModernQGIS Launcher." }
+
           Copy-Item "LICENSE" $stage
           Copy-Item "README.md", "README.ja.md", "README.en.md" $docs
           Copy-Item "release/notes/v$v.zh-CN.md", "release/notes/v$v.ja-JP.md", "release/notes/v$v.en-US.md" $docs
+          @(
+            "ModernQGIS v$v Functional Preview",
+            "Requires an installed QGIS 4.x runtime (validated against QGIS 4.2 public SDK).",
+            "The launcher adds this package's plugins directory to QGIS_PLUGINPATH and starts QGIS.",
+            "If QGIS has not enabled the ModernQGIS C++ plugin previously, enable ModernQGIS once from the QGIS Plugin Manager."
+          ) | Set-Content -Encoding UTF8 "$stage/INSTALLATION.txt"
           "stage=$stage" >> $env:GITHUB_OUTPUT
 
       - name: Install Inno Setup
@@ -124,31 +206,38 @@ jobs:
           if (-not $tool) { throw "signtool.exe was not found on the Windows runner." }
           "path=$tool" >> $env:GITHUB_OUTPUT
 
-      - name: Sign application binary
+      - name: Sign ModernQGIS binaries
         shell: pwsh
         run: |
-          $exe = Join-Path "${{ steps.stage.outputs.stage }}" "modernqgis-sandbox.exe"
-          & "${{ steps.signtool.outputs.path }}" sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" /tr http://timestamp.digicert.com /td SHA256 $exe
-          if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Timestamp service failed; retrying without timestamp."
-            & "${{ steps.signtool.outputs.path }}" sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" $exe
+          $ErrorActionPreference = "Stop"
+          $files = @(
+            (Join-Path "${{ steps.stage.outputs.stage }}" "modernqgis-launcher.exe"),
+            (Join-Path "${{ steps.stage.outputs.stage }}" "plugins\modernqgis.dll")
+          )
+          foreach ($file in $files) {
+            & "${{ steps.signtool.outputs.path }}" sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" /tr http://timestamp.digicert.com /td SHA256 $file
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "Timestamp service failed for $file; retrying without timestamp."
+              & "${{ steps.signtool.outputs.path }}" sign /fd SHA256 /sha1 "${{ steps.signing.outputs.thumbprint }}" $file
+            }
+            if ($LASTEXITCODE -ne 0) { throw "Binary signing failed: $file" }
           }
-          if ($LASTEXITCODE -ne 0) { throw "Application signing failed." }
 
       - name: Build portable archive and installer
         id: package
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           $v = "${{ steps.version.outputs.version }}"
           $stage = (Resolve-Path "${{ steps.stage.outputs.stage }}").Path
           $dist = (Resolve-Path dist).Path
-          $zip = Join-Path $dist "ModernQGIS-ShellPreview-v$v-windows-x64.zip"
+          $zip = Join-Path $dist "ModernQGIS-v$v-windows-x64.zip"
           Compress-Archive -Path "$stage\*" -DestinationPath $zip -Force
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { throw "Inno Setup compiler was not found." }
           & $iscc "/DMyAppVersion=$v" "/DStageDir=$stage" "/DOutputDir=$dist" "installer/ModernQGIS.iss"
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
-          $installer = Join-Path $dist "ModernQGIS-ShellPreview-v$v-windows-x64-setup.exe"
+          $installer = Join-Path $dist "ModernQGIS-v$v-windows-x64-setup.exe"
           if (-not (Test-Path $installer)) { throw "Expected installer was not generated: $installer" }
           "zip=$zip" >> $env:GITHUB_OUTPUT
           "installer=$installer" >> $env:GITHUB_OUTPUT
@@ -168,39 +257,42 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $app = Join-Path "${{ steps.stage.outputs.stage }}" "modernqgis-sandbox.exe"
+          $launcher = Join-Path "${{ steps.stage.outputs.stage }}" "modernqgis-launcher.exe"
+          $plugin = Join-Path "${{ steps.stage.outputs.stage }}" "plugins\modernqgis.dll"
           $installer = "${{ steps.package.outputs.installer }}"
           $expected = "${{ steps.signing.outputs.thumbprint }}"
           $source = "${{ steps.signing.outputs.source }}"
-          $appSig = Get-AuthenticodeSignature $app
-          $installerSig = Get-AuthenticodeSignature $installer
 
-          function Assert-Signature([string]$name, $sig) {
+          function Assert-Signature([string]$name, [string]$file) {
+            $sig = Get-AuthenticodeSignature $file
             if (-not $sig.SignerCertificate) { throw "$name has no Authenticode signer certificate." }
             if ($sig.SignerCertificate.Thumbprint -ne $expected) { throw "$name signer thumbprint mismatch." }
             $bad = @("NotSigned", "HashMismatch", "NotSupportedFormat", "Incompatible")
             if ($bad -contains $sig.Status.ToString()) { throw "$name Authenticode validation failed: $($sig.Status)." }
             if ($source -eq "repository-secret" -and $sig.Status -ne "Valid") { throw "$name repository certificate is not trusted/valid: $($sig.Status)." }
+            if ($source -eq "repository-secret") {
+              & "${{ steps.signtool.outputs.path }}" verify /pa /v $file
+              if ($LASTEXITCODE -ne 0) { throw "$name public-trust verification failed." }
+            }
+            return $sig.Status.ToString()
           }
 
-          Assert-Signature "Application" $appSig
-          Assert-Signature "Installer" $installerSig
-          if ($source -eq "repository-secret") {
-            & "${{ steps.signtool.outputs.path }}" verify /pa /v $app
-            if ($LASTEXITCODE -ne 0) { throw "Application public-trust verification failed." }
-            & "${{ steps.signtool.outputs.path }}" verify /pa /v $installer
-            if ($LASTEXITCODE -ne 0) { throw "Installer public-trust verification failed." }
-          }
-
+          $launcherStatus = Assert-Signature "Launcher" $launcher
+          $pluginStatus = Assert-Signature "QGIS plugin" $plugin
+          $installerStatus = Assert-Signature "Installer" $installer
           $trustMode = if ($source -eq "repository-secret") { "trusted-chain-required" } else { "self-signed-certificate-included" }
           @(
-            "version=${{ steps.version.outputs.version }}"
-            "source=$source"
-            "trust_mode=$trustMode"
-            "subject=${{ steps.signing.outputs.subject }}"
-            "thumbprint=$expected"
-            "application_status=$($appSig.Status)"
-            "installer_status=$($installerSig.Status)"
+            "version=${{ steps.version.outputs.version }}",
+            "package_kind=FunctionalPreview",
+            "qgis_bundled=false",
+            "qgis_sdk_package=${{ steps.osgeo.outputs.qgis-package }}",
+            "source=$source",
+            "trust_mode=$trustMode",
+            "subject=${{ steps.signing.outputs.subject }}",
+            "thumbprint=$expected",
+            "launcher_status=$launcherStatus",
+            "plugin_status=$pluginStatus",
+            "installer_status=$installerStatus"
           ) | Set-Content -Encoding UTF8 dist/SIGNING-INFO.txt
 
           $files = @(
@@ -217,10 +309,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64-signed
+          name: ModernQGIS-v${{ steps.version.outputs.version }}-windows-x64-signed
           path: |
-            dist/ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64-setup.exe
-            dist/ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64.zip
+            dist/ModernQGIS-v${{ steps.version.outputs.version }}-windows-x64-setup.exe
+            dist/ModernQGIS-v${{ steps.version.outputs.version }}-windows-x64.zip
             dist/ModernQGIS-SigningCertificate.cer
             dist/SIGNING-INFO.txt
             dist/SHA256SUMS
@@ -233,8 +325,8 @@ jobs:
           prerelease: true
           body_path: release/notes/v${{ steps.version.outputs.version }}.en-US.md
           files: |
-            dist/ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64-setup.exe
-            dist/ModernQGIS-ShellPreview-v${{ steps.version.outputs.version }}-windows-x64.zip
+            dist/ModernQGIS-v${{ steps.version.outputs.version }}-windows-x64-setup.exe
+            dist/ModernQGIS-v${{ steps.version.outputs.version }}-windows-x64.zip
             dist/ModernQGIS-SigningCertificate.cer
             dist/SIGNING-INFO.txt
             dist/SHA256SUMS

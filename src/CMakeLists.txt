@@ -7,6 +7,7 @@ set(MODERNQGIS_FOUNDATION_SOURCES
     shell/ShellStyle.cpp
     shell/ModernShellWindow.cpp
     shell/ModernShellIntegration.cpp
+    shell/V04CommandSurface.cpp
 )
 
 set(MODERNQGIS_FOUNDATION_HEADERS
@@ -20,6 +21,7 @@ set(MODERNQGIS_FOUNDATION_HEADERS
     i18n/LocalizationManager.h
     shell/ShellStyle.h
     shell/ModernShellWindow.h
+    shell/V04CommandSurface.h
 )
 
 add_library(modernqgis_foundation STATIC
@@ -52,16 +54,25 @@ if(MODERNQGIS_BUILD_SANDBOX)
     install(TARGETS modernqgis-sandbox RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif()
 
+add_executable(modernqgis-launcher WIN32
+    launcher/main.cpp
+)
+target_link_libraries(modernqgis-launcher PRIVATE Qt6::Core Qt6::Widgets)
+target_compile_definitions(modernqgis-launcher PRIVATE MODERNQGIS_VERSION="${PROJECT_VERSION}")
+install(TARGETS modernqgis-launcher RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
 if(MODERNQGIS_WITH_QGIS)
     add_library(modernqgis_qgis_bridge STATIC
         bridge/QgisBridge.cpp
         bridge/QgisBridge.h
+        bridge/MeasureMapTool.cpp
+        bridge/MeasureMapTool.h
     )
     set_target_properties(modernqgis_qgis_bridge PROPERTIES
         POSITION_INDEPENDENT_CODE ON
     )
     target_link_libraries(modernqgis_qgis_bridge
-        PUBLIC modernqgis_foundation QGIS::Core QGIS::Gui Qt6::Xml
+        PUBLIC modernqgis_foundation QGIS::Core QGIS::Gui Qt6::Xml Qt6::Svg
     )
 
     add_library(modernqgis_plugin MODULE
@@ -70,7 +81,7 @@ if(MODERNQGIS_WITH_QGIS)
         plugin/plugin_exports.cpp
     )
     target_link_libraries(modernqgis_plugin
-        PRIVATE modernqgis_qgis_bridge QGIS::Core QGIS::Gui Qt6::Xml
+        PRIVATE modernqgis_qgis_bridge QGIS::Core QGIS::Gui Qt6::Xml Qt6::Svg
     )
     set_target_properties(modernqgis_plugin PROPERTIES
         PREFIX ""
