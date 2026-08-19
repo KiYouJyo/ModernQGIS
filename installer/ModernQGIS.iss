@@ -1,5 +1,5 @@
 #ifndef MyAppVersion
-#define MyAppVersion "0.3.0"
+#define MyAppVersion "0.4.0"
 #endif
 #ifndef StageDir
 #define StageDir "..\dist\stage"
@@ -10,9 +10,9 @@
 
 [Setup]
 AppId={{D6810131-97E0-4E4A-BBE5-8CF59E9A1B38}
-AppName=ModernQGIS ShellPreview
+AppName=ModernQGIS
 AppVersion={#MyAppVersion}
-AppVerName=ModernQGIS ShellPreview {#MyAppVersion}
+AppVerName=ModernQGIS {#MyAppVersion}
 AppPublisher=ModernQGIS Contributors
 DefaultDirName={localappdata}\Programs\ModernQGIS
 DefaultGroupName=ModernQGIS
@@ -21,22 +21,22 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir={#OutputDir}
-OutputBaseFilename=ModernQGIS-ShellPreview-v{#MyAppVersion}-windows-x64-setup
+OutputBaseFilename=ModernQGIS-v{#MyAppVersion}-windows-x64-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 SetupLogging=yes
-UninstallDisplayName=ModernQGIS ShellPreview {#MyAppVersion}
+UninstallDisplayName=ModernQGIS {#MyAppVersion}
 
 [Files]
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\ModernQGIS ShellPreview"; Filename: "{app}\modernqgis-sandbox.exe"; WorkingDir: "{app}"
-Name: "{userdesktop}\ModernQGIS ShellPreview"; Filename: "{app}\modernqgis-sandbox.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autoprograms}\ModernQGIS"; Filename: "{app}\modernqgis-launcher.exe"; WorkingDir: "{app}"
+Name: "{userdesktop}\ModernQGIS"; Filename: "{app}\modernqgis-launcher.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Run]
-Filename: "{app}\modernqgis-sandbox.exe"; Description: "Launch ModernQGIS ShellPreview"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\modernqgis-launcher.exe"; Description: "Launch ModernQGIS"; Flags: nowait postinstall skipifsilent
