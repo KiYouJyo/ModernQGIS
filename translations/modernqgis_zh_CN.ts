@@ -64,10 +64,20 @@
 <message><source>✓ Rendering complete</source><translation>✓ 渲染完成</translation></message>
 </context>
 <context><name>ModernQgisPlugin</name>
-<message><source>Open ModernQGIS Shell Preview</source><translation>打开 ModernQGIS Shell 预览</translation></message>
+<message><source>Open ModernQGIS</source><translation>打开 ModernQGIS</translation></message>
 <message><source>&amp;ModernQGIS</source><translation>&amp;ModernQGIS</translation></message>
 </context>
 <context><name>QObject</name>
 <message><source>Map canvas</source><translation>地图画布</translation></message>
+<message><source>ModernQGIS Measure</source><translation>ModernQGIS 测量</translation></message>
+<message><source>Distance: left-click to add points; right-click or Enter to finish; Esc clears.</source><translation>距离：左键添加点；右键或 Enter 完成；Esc 清除。</translation></message>
+<message><source>Area: left-click to add vertices; right-click or Enter to finish; Esc clears.</source><translation>面积：左键添加顶点；右键或 Enter 完成；Esc 清除。</translation></message>
+<message><source>Add at least three vertices to measure area.</source><translation>至少添加三个顶点才能测量面积。</translation></message>
+<message><source>Add at least two points to measure distance.</source><translation>至少添加两个点才能测量距离。</translation></message>
+<message><source>Area: %1 %2</source><translation>面积：%1 %2</translation></message>
+<message><source>Distance: %1 %2</source><translation>距离：%1 %2</translation></message>
+<message><source>ModernQGIS</source><translation>ModernQGIS</translation></message>
+<message><source>QGIS 4.x was not found. Install QGIS 4.2 or set MODERNQGIS_QGIS_EXECUTABLE to qgis-bin.exe.</source><translation>未找到 QGIS 4.x。请安装 QGIS 4.2，或将 MODERNQGIS_QGIS_EXECUTABLE 设置为 qgis-bin.exe 的路径。</translation></message>
+<message><source>QGIS was found, but ModernQGIS could not start it.</source><translation>已找到 QGIS，但 ModernQGIS 无法启动它。</translation></message>
 </context>
 </TS>
