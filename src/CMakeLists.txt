@@ -52,10 +52,19 @@ if(MODERNQGIS_BUILD_SANDBOX)
     install(TARGETS modernqgis-sandbox RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif()
 
+add_executable(modernqgis-launcher WIN32
+    launcher/main.cpp
+)
+target_link_libraries(modernqgis-launcher PRIVATE Qt6::Core Qt6::Widgets)
+target_compile_definitions(modernqgis-launcher PRIVATE MODERNQGIS_VERSION="${PROJECT_VERSION}")
+install(TARGETS modernqgis-launcher RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
 if(MODERNQGIS_WITH_QGIS)
     add_library(modernqgis_qgis_bridge STATIC
         bridge/QgisBridge.cpp
         bridge/QgisBridge.h
+        bridge/MeasureMapTool.cpp
+        bridge/MeasureMapTool.h
     )
     set_target_properties(modernqgis_qgis_bridge PROPERTIES
         POSITION_INDEPENDENT_CODE ON
