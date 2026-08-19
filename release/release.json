@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "product": "ModernQGIS",
-  "version": "0.3.0",
-  "stability": "development",
-  "foundationScope": ["v0.1", "v0.2", "v0.3"],
+  "version": "0.4.0",
+  "stability": "preview",
+  "foundationScope": ["v0.1", "v0.2", "v0.3", "v0.4"],
   "qgisBundled": false,
   "locales": ["zh-CN", "ja-JP", "en-US"],
   "channels": {
     "github": {
-      "publish": false,
-      "packageKind": "ShellPreview",
+      "publish": true,
+      "packageKind": "FunctionalPreview",
       "platform": "windows",
       "arch": "x64"
     }
