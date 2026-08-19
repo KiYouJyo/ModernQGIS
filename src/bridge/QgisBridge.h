@@ -16,6 +16,7 @@ class QgsMapToolZoom;
 
 namespace modernqgis {
 
+class MeasureMapTool;
 class ModernShellWindow;
 
 class QgisBridge final : public QObject, public IQgisBridge {
@@ -50,6 +51,8 @@ private:
     QgsMapToolZoom* m_zoomInTool = nullptr;
     QgsMapToolZoom* m_zoomOutTool = nullptr;
     QgsMapToolIdentifyFeature* m_selectTool = nullptr;
+    MeasureMapTool* m_measureDistanceTool = nullptr;
+    MeasureMapTool* m_measureAreaTool = nullptr;
 };
 
 } // namespace modernqgis
