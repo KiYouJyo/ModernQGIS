@@ -12,6 +12,13 @@
 <message><source>Maximize or restore</source><translation>Maximize or restore</translation></message>
 <message><source>Close</source><translation>Close</translation></message>
 <message><source>Project</source><translation>Project</translation></message>
+<message><source>New</source><translation>New</translation></message>
+<message><source>Open</source><translation>Open</translation></message>
+<message><source>Save</source><translation>Save</translation></message>
+<message><source>Zoom</source><translation>Zoom</translation></message>
+<message><source>Zoom In</source><translation>Zoom In</translation></message>
+<message><source>Zoom Out</source><translation>Zoom Out</translation></message>
+<message><source>Toggle Editing</source><translation>Toggle Editing</translation></message>
 <message><source>Map</source><translation>Map</translation></message>
 <message><source>Insert</source><translation>Insert</translation></message>
 <message><source>Select</source><translation>Select</translation></message>
