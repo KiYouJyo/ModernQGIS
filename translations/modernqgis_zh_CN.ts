@@ -12,6 +12,13 @@
 <message><source>Maximize or restore</source><translation>最大化或还原</translation></message>
 <message><source>Close</source><translation>关闭</translation></message>
 <message><source>Project</source><translation>项目</translation></message>
+<message><source>New</source><translation>新建</translation></message>
+<message><source>Open</source><translation>打开</translation></message>
+<message><source>Save</source><translation>保存</translation></message>
+<message><source>Zoom</source><translation>缩放</translation></message>
+<message><source>Zoom In</source><translation>放大</translation></message>
+<message><source>Zoom Out</source><translation>缩小</translation></message>
+<message><source>Toggle Editing</source><translation>切换编辑</translation></message>
 <message><source>Map</source><translation>地图</translation></message>
 <message><source>Insert</source><translation>插入</translation></message>
 <message><source>Select</source><translation>选择</translation></message>
