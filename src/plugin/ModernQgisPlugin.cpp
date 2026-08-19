@@ -3,6 +3,7 @@
 
 #include "bridge/QgisBridge.h"
 #include "shell/ModernShellWindow.h"
+#include "shell/V04CommandSurface.h"
 
 #include <qgisinterface.h>
 #include <QAction>
@@ -41,6 +42,7 @@ void ModernQgisPlugin::showShell() {
     if (!m_shell) {
         m_shell = new ModernShellWindow(m_iface->mainWindow());
         m_shell->setAttribute(Qt::WA_DeleteOnClose, false);
+        installV04CommandSurface(m_shell);
 
         m_bridge = new QgisBridge(m_iface, this);
         m_bridge->attachWorkspace(m_shell);
