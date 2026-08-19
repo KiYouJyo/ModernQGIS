@@ -12,6 +12,13 @@
 <message><source>Maximize or restore</source><translation>最大化または元に戻す</translation></message>
 <message><source>Close</source><translation>閉じる</translation></message>
 <message><source>Project</source><translation>プロジェクト</translation></message>
+<message><source>New</source><translation>新規</translation></message>
+<message><source>Open</source><translation>開く</translation></message>
+<message><source>Save</source><translation>保存</translation></message>
+<message><source>Zoom</source><translation>ズーム</translation></message>
+<message><source>Zoom In</source><translation>ズームイン</translation></message>
+<message><source>Zoom Out</source><translation>ズームアウト</translation></message>
+<message><source>Toggle Editing</source><translation>編集を切り替え</translation></message>
 <message><source>Map</source><translation>マップ</translation></message>
 <message><source>Insert</source><translation>挿入</translation></message>
 <message><source>Select</source><translation>選択</translation></message>
