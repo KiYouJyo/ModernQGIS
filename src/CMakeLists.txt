@@ -7,6 +7,7 @@ set(MODERNQGIS_FOUNDATION_SOURCES
     shell/ShellStyle.cpp
     shell/ModernShellWindow.cpp
     shell/ModernShellIntegration.cpp
+    shell/V04CommandSurface.cpp
 )
 
 set(MODERNQGIS_FOUNDATION_HEADERS
@@ -20,6 +21,7 @@ set(MODERNQGIS_FOUNDATION_HEADERS
     i18n/LocalizationManager.h
     shell/ShellStyle.h
     shell/ModernShellWindow.h
+    shell/V04CommandSurface.h
 )
 
 add_library(modernqgis_foundation STATIC
