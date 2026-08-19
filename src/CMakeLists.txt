@@ -72,7 +72,7 @@ if(MODERNQGIS_WITH_QGIS)
         POSITION_INDEPENDENT_CODE ON
     )
     target_link_libraries(modernqgis_qgis_bridge
-        PUBLIC modernqgis_foundation QGIS::Core QGIS::Gui Qt6::Xml
+        PUBLIC modernqgis_foundation QGIS::Core QGIS::Gui Qt6::Xml Qt6::Svg
     )
 
     add_library(modernqgis_plugin MODULE
@@ -81,7 +81,7 @@ if(MODERNQGIS_WITH_QGIS)
         plugin/plugin_exports.cpp
     )
     target_link_libraries(modernqgis_plugin
-        PRIVATE modernqgis_qgis_bridge QGIS::Core QGIS::Gui Qt6::Xml
+        PRIVATE modernqgis_qgis_bridge QGIS::Core QGIS::Gui Qt6::Xml Qt6::Svg
     )
     set_target_properties(modernqgis_plugin PROPERTIES
         PREFIX ""
